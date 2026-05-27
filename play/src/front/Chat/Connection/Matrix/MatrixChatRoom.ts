@@ -76,6 +76,7 @@ import type { LazyPictureStore, PictureStore } from "../../../Stores/PictureStor
 import { chatNotificationStore } from "../../../Stores/ProximityNotificationStore";
 import { chatVisibilityStore } from "../../../Stores/ChatStore";
 import type { UserProviderMerger } from "../../UserProviderMerger/UserProviderMerger";
+import { MAX_MATRIX_MESSAGE_CHARS } from "../../Services/ChatMessageSplitter";
 import { MatrixChatMessage } from "./MatrixChatMessage";
 import { MatrixChatLightPoll } from "./MatrixChatLightPoll";
 import { MatrixChatPoll } from "./MatrixChatPoll";
@@ -87,7 +88,6 @@ import { resolveChatUserColor } from "./services/WaMatrixProfileService";
 import { MatrixChatRoomMember } from "./MatrixChatRoomMember";
 import { matrixAvatarProfile } from "./services/MatrixAvatarProfile";
 import { getThreadSummary, shouldDisplayEventInRoomTimeline } from "./MatrixThreadUtils";
-import { MAX_MATRIX_MESSAGE_CHARS } from "../../Services/ChatMessageSplitter";
 import { sendMatrixTextMessageInChunks } from "./MatrixSendMessage";
 
 type EventId = string;
