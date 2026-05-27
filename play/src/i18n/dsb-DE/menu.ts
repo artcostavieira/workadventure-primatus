@@ -164,6 +164,7 @@ const menu: DeepPartial<Translation["menu"]> = {
         moveRight: "Napšawo",
         speedUp: "Běžaś",
         interact: "Interagěrowaś",
+        pushToTalk: "Tłocaś za nachylne aktiwěrowanje mikrofona w zmakanju",
         follow: "Slědowaś",
         openChat: "Chat wótcyniś",
         openUserList: "Lisćinu wužywarjow wótcyniś",

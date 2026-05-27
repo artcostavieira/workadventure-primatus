@@ -26,6 +26,7 @@ import {
     requestedCameraState,
     requestedMicrophoneState,
     silentStore,
+    temporaryMicrophoneState,
 } from "./MediaStore";
 import { screenShareStreamElementsStore, videoStreamElementsStore } from "./PeerStore";
 import { windowSize } from "./CoWebsiteStore";
@@ -34,6 +35,7 @@ import { isLiveStreamingStore } from "./IsStreamingStore";
 import { createDelayedUnsubscribeStore } from "./Utils/createDelayedUnsubscribeStore";
 import { currentPlayerGroupIdStore } from "./CurrentPlayerGroupStore";
 import { shouldDisplayLocalCameraPeer } from "./StreamableCollectionRules";
+import { shouldShowMicrophoneAsEnabled } from "./PushToTalkStore";
 
 export const LISTENER_BOX_UNIQUE_ID = "listener-box";
 export const LISTENER_BOX_PRIORITY = -4;
@@ -72,7 +74,14 @@ export const myCameraPeerStore: Readable<VideoBox> = derived([LL], ([$LL], set) 
         }),
         // hasAudio = true because the webcam has a microphone attached and could potentially play sound
         hasAudio: writable(true),
-        isMuted: derived(requestedMicrophoneState, (micState) => !micState),
+        isMuted: derived(
+            [requestedMicrophoneState, temporaryMicrophoneState],
+            ([$requestedMicrophoneState, $temporaryMicrophoneState]) =>
+                !shouldShowMicrophoneAsEnabled({
+                    requestedMicrophoneState: $requestedMicrophoneState,
+                    temporaryMicrophoneState: $temporaryMicrophoneState,
+                })
+        ),
         statusStore: writable("connected" as const),
         name: writable($LL.camera.my.nameTag()),
         showVoiceIndicator: localVoiceIndicatorStore,

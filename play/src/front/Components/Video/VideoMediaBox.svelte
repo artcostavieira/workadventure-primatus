@@ -16,8 +16,9 @@
     import { showFloatingUi } from "../../Utils/svelte-floatingui-show";
     import { displayVideoQualityStore } from "../../Stores/DisplayVideoQualityStore";
     import { requestedMegaphoneStore } from "../../Stores/MegaphoneStore";
-    import { requestedCameraState, requestedMicrophoneState } from "../../Stores/MediaStore";
+    import { requestedCameraState, requestedMicrophoneState, temporaryMicrophoneState } from "../../Stores/MediaStore";
     import { requestedScreenSharingState } from "../../Stores/ScreenSharingStore";
+    import { shouldShowMicrophoneAsEnabled } from "../../Stores/PushToTalkStore";
     import { blackListManager } from "../../WebRtc/BlackListManager";
     import { activePictureInPictureStore } from "../../Stores/PeerStore";
     import ActionMediaBox from "./ActionMediaBox.svelte";
@@ -84,7 +85,12 @@
     $: isLocalUserStreamingMegaphone =
         isLocalUser &&
         $requestedMegaphoneStore &&
-        ($requestedCameraState || $requestedMicrophoneState || $requestedScreenSharingState);
+        ($requestedCameraState ||
+            shouldShowMicrophoneAsEnabled({
+                requestedMicrophoneState: $requestedMicrophoneState,
+                temporaryMicrophoneState: $temporaryMicrophoneState,
+            }) ||
+            $requestedScreenSharingState);
 
     let blackListSubject: Subscription | undefined;
     let unBlackListSubject: Subscription | undefined;

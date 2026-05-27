@@ -164,6 +164,7 @@ const menu: DeepPartial<Translation["menu"]> = {
         moveRight: "تحرك لليمين",
         speedUp: "الركض",
         interact: "تفاعل",
+        pushToTalk: "اضغط باستمرار للتحدث مؤقتًا في اجتماع",
         follow: "اتبع",
         openChat: "فتح الدردشة",
         openUserList: "فتح قائمة المستخدمين",
