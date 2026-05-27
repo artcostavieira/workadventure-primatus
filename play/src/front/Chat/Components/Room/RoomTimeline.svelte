@@ -20,7 +20,6 @@
         type RoomTimelineFocusRequest,
     } from "../../Stores/RoomSidePanelStore";
     import { matrixSecurity } from "../../Connection/Matrix/MatrixSecurity";
-    import { localUserStore } from "../../../Connection/LocalUserStore";
     import { ProximityChatRoom } from "../../Connection/Proximity/ProximityChatRoom";
     import LL from "../../../../i18n/i18n-svelte";
     import Message from "./Message.svelte";
@@ -29,6 +28,12 @@
     import PollCard from "./PollCard.svelte";
     import TypingUsers from "./TypingUsers.svelte";
     import { shouldReserveFloatingCloseButtonSpace } from "./RoomTimelineHeaderLayout";
+    import {
+        getAutoScrollTargetForMessageBodyUpdate,
+        getAutoScrollTargetForTimelineUpdate,
+        type RoomTimelineAutoScrollItem,
+        type RoomTimelineScrollTarget,
+    } from "./RoomTimelineScroll";
     import { IconChevronLeft, IconChevronRight, IconLoader, IconMailBox, IconInfoCircle } from "@wa-icons";
 
     export let room: ChatConversation;
@@ -39,8 +44,6 @@
 
     const chatConnection = gameManager.chatConnection;
     const shouldRetrySendingEvents = chatConnection.shouldRetrySendingEvents;
-    let myChatID = localUserStore.getChatId();
-
     // Time gap threshold for message grouping (5 minutes)
     const TIME_GAP_THRESHOLD = 5 * 60 * 1000;
 
@@ -54,6 +57,7 @@
     let messageInputBarRef: MessageInputBar;
     let lastTimelineFocusSequence = 0;
     let initialMessagesLoaded = false;
+    let previousLastTimelineItemId: string | undefined = undefined;
 
     const gameScene = gameManager.getCurrentGameScene();
     const chatRoomsEnableInAdmin = gameScene.room.isChatEnabled;
@@ -247,8 +251,11 @@
         if ($initializationState === "ready") {
             room.setTimelineAsRead();
         }
+        const currentLastTimelineItem = getLastTimelineAutoScrollItem();
         if (autoScroll) {
-            scrollToMessageListBottom();
+            scrollToAutoScrollTarget(
+                getAutoScrollTargetForTimelineUpdate(previousLastTimelineItemId, currentLastTimelineItem)
+            );
         } else if (onScrollTop) {
             const oldFirstListItem = messageListRef.querySelector<HTMLLIElement>('li[data-first-li="true"]');
 
@@ -258,11 +265,47 @@
             }
             setFirstListItem();
         }
+        previousLastTimelineItemId = currentLastTimelineItem?.id;
     });
 
     function scrollToMessageListBottom() {
         if (messageListRef == undefined) return;
         messageListRef.scroll({ top: messageListRef.scrollHeight, behavior: "smooth" });
+    }
+
+    function getLastTimelineAutoScrollItem(): RoomTimelineAutoScrollItem | undefined {
+        const currentTimelineItems = get(timelineItems);
+        const lastTimelineItem = currentTimelineItems[currentTimelineItems.length - 1];
+
+        if (!lastTimelineItem) {
+            return undefined;
+        }
+
+        return {
+            id: lastTimelineItem.id,
+            kind: lastTimelineItem.kind,
+            isMyMessage: lastTimelineItem.kind === "message" ? lastTimelineItem.message.isMyMessage : undefined,
+        };
+    }
+
+    function scrollToTimelineEventStart(eventId: string) {
+        const target = findTimelineEventElement(eventId);
+        target?.scrollIntoView({ block: "start", behavior: "smooth" });
+    }
+
+    function scrollToAutoScrollTarget(scrollTarget: RoomTimelineScrollTarget) {
+        if (scrollTarget.kind === "item-start") {
+            scrollToTimelineEventStart(scrollTarget.eventId);
+            return;
+        }
+
+        scrollToMessageListBottom();
+    }
+
+    function findTimelineEventElement(eventId: string): HTMLLIElement | undefined {
+        return Array.from(messageListRef?.querySelectorAll<HTMLLIElement>("li[data-event-id]") ?? []).find(
+            (element) => element.dataset.eventId === eventId
+        );
     }
 
     function goBackAndClearSelectedChatMessage() {
@@ -349,15 +392,17 @@
     }
 
     function onUpdateMessageBody(event: CustomEvent) {
-        const currentTimelineItems = get(timelineItems);
-        const lastTimelineItem = currentTimelineItems[currentTimelineItems.length - 1];
-        const lastMessage = lastTimelineItem?.kind === "message" ? lastTimelineItem.message : undefined;
+        const lastTimelineItem = getLastTimelineAutoScrollItem();
+        if (autoScroll) {
+            scrollToAutoScrollTarget(getAutoScrollTargetForMessageBodyUpdate(lastTimelineItem, event.detail?.id));
+            return;
+        }
+
         if (
-            autoScroll ||
-            (event.detail != undefined &&
-                lastMessage &&
-                event.detail.id === lastMessage.id &&
-                lastMessage.sender?.chatId === myChatID)
+            event.detail != undefined &&
+            lastTimelineItem !== undefined &&
+            lastTimelineItem.id === event.detail.id &&
+            lastTimelineItem.isMyMessage
         ) {
             scrollToMessageListBottom();
         }
@@ -378,17 +423,13 @@
 
         await tick();
 
-        let target = Array.from(messageListRef?.querySelectorAll<HTMLLIElement>("li[data-event-id]") ?? []).find(
-            (element) => element.dataset.eventId === request.eventId
-        );
+        let target = findTimelineEventElement(request.eventId);
 
         if (!target) {
             const wasMadeVisible = (await room.ensureTimelineEventVisible?.(request.eventId)) ?? false;
             if (wasMadeVisible) {
                 await tick();
-                target = Array.from(messageListRef?.querySelectorAll<HTMLLIElement>("li[data-event-id]") ?? []).find(
-                    (element) => element.dataset.eventId === request.eventId
-                );
+                target = findTimelineEventElement(request.eventId);
             }
         }
 
@@ -397,7 +438,7 @@
         }
 
         lastTimelineFocusSequence = request.sequence;
-        target.scrollIntoView({ block: "center", behavior: "smooth" });
+        target.scrollIntoView({ block: "start", behavior: "smooth" });
         target.classList.remove("highlight-message");
         // // Force the highlight animation to restart when the same poll is clicked again.
         // target.offsetWidth;
