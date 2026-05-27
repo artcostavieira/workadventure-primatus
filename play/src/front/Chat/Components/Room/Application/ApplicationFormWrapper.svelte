@@ -27,6 +27,7 @@
     const applicationManager = gameManager.getCurrentGameScene().applicationManager;
 
     export let property: ApplicationProperty;
+    export let disabled = false;
 
     let errorLink: string | undefined;
     let htmlElementInput: HTMLInputElement;
@@ -181,6 +182,9 @@
         <h2 class="text-sm p-0 m-0">{property.title}</h2>
         <CloseButton
             on:click={() => {
+                if (disabled) {
+                    return;
+                }
                 dispatch("close");
             }}
         />
@@ -195,6 +199,7 @@
         class="border rounded w-full !m-0 text-black"
         value={property.link}
         bind:this={htmlElementInput}
+        {disabled}
         on:input={() => {
             dispatch("input", property.link);
         }}
