@@ -30,6 +30,7 @@ export class UsernameDisplay extends Phaser.GameObjects.Container {
         this.displayScale = this.getDisplayScale(zoomModifier);
         this.setScale(this.displayScale);
         const textPosition = this.getDomPosition();
+        this.element.style.setProperty("--username-dom-scale", this.displayScale.toString());
         this.gameScene.usernameDomLayer.updateUsernameScale(this.domUsernameId, this.displayScale, zoomModifier);
         this.gameScene.usernameDomLayer.updateUsernamePosition(this.domUsernameId, textPosition.x, textPosition.y);
     };
@@ -61,6 +62,7 @@ export class UsernameDisplay extends Phaser.GameObjects.Container {
 
         this.scene.add.existing(this);
         this.setScale(this.displayScale);
+        this.element.style.setProperty("--username-dom-scale", this.displayScale.toString());
         this.scene.game.events.on(WaScaleManagerEvent.ZoomChanged, this.onZoomChanged);
     }
 
