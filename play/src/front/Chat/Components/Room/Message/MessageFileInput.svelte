@@ -1,9 +1,7 @@
 <script lang="ts">
     import { get } from "svelte/store";
     import { createEventDispatcher, onMount } from "svelte";
-    import type { ChatConversation } from "../../../Connection/ChatConnection";
     import { selectedChatMessageToReply } from "../../../Stores/ChatStore";
-    import { ProximityChatRoom } from "../../../Connection/Proximity/ProximityChatRoom";
     import { chatInputFocusStore } from "../../../../Stores/ChatStore";
     import { IconLoader, IconPaperclip, IconX } from "@wa-icons";
 
@@ -14,8 +12,6 @@
 
     let files: FileList | undefined = undefined;
     let fileInputElement: HTMLInputElement;
-    export let room: ChatConversation;
-    const isProximityChatRoom = room instanceof ProximityChatRoom;
 
     $: {
         if (files && files.length > 0) {
@@ -53,7 +49,6 @@
     <input
         id="upload"
         class="hidden"
-        disabled={isProximityChatRoom}
         type="file"
         multiple
         bind:files
@@ -70,10 +65,7 @@
         {#if files !== undefined}
             <IconLoader class="animate-spin" font-size={18} />
         {:else}
-            <IconPaperclip
-                class="hover:!cursor-pointer {room instanceof ProximityChatRoom ? 'opacity-30 !cursor-none' : ''}"
-                font-size={18}
-            />
+            <IconPaperclip class="hover:!cursor-pointer" font-size={18} />
         {/if}
     </label>
     <button

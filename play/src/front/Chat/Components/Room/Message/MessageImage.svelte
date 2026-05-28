@@ -2,10 +2,11 @@
     import type { Readable } from "svelte/store";
     import { openModal } from "svelte-modals";
     import LL from "../../../../../i18n/i18n-svelte";
-    import type { ChatMessageContent } from "../../../Connection/ChatConnection";
+    import type { ChatMessage, ChatMessageContent } from "../../../Connection/ChatConnection";
     import ChatImagePreviewModal from "../../ChatImagePreviewModal.svelte";
 
     export let content: Readable<ChatMessageContent>;
+    export let message: ChatMessage | undefined = undefined;
 
     $: previewUrl = $content.url ?? $content.thumbnailUrl;
     $: displayUrl = $content.thumbnailUrl ?? $content.url;
@@ -13,6 +14,10 @@
 
     function openImagePreview(url: string, alt: string | undefined) {
         openModal(ChatImagePreviewModal, { url, alt });
+    }
+
+    async function downloadAttachment() {
+        await message?.downloadAttachment?.();
     }
 </script>
 
@@ -51,7 +56,12 @@
             </a>
         {/if}
     </div>
-    {#if canDisplayImage}
+    {#if $content.mediaState === "pendingDownload"}
+        <button class="text-xs text-white/80 px-2 py-1 hover:bg-white/10 rounded" on:click={downloadAttachment}>
+            {$LL.chat.file.download()}
+            {$content.body}
+        </button>
+    {:else if canDisplayImage}
         <!-- svelte-ignore a11y-click-events-have-key-events -->
         <!-- svelte-ignore a11y-no-static-element-interactions -->
         <div
@@ -69,7 +79,12 @@
             <img class="w-full object-cover max-h-52 rounded" src={displayUrl} alt={$content.body} draggable="false" />
         </div>
     {:else if $content.mediaState === "loading"}
-        <div class="text-xs text-white/80 px-2 py-1">{$LL.chat.imagePreview.loading()}</div>
+        <div class="text-xs text-white/80 px-2 py-1">
+            {$LL.chat.imagePreview.loading()}
+            {#if $content.mediaProgress !== undefined}
+                {Math.round($content.mediaProgress * 100)}%
+            {/if}
+        </div>
     {:else}
         <div class="text-xs text-white/80 px-2 py-1">
             {$content.mediaErrorKind === "decrypt"

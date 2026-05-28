@@ -202,7 +202,12 @@
                         </div>
                     {/if}
 
-                    <svelte:component this={messageType[type]} on:updateMessageBody={updateMessageBody} {content} />
+                    <svelte:component
+                        this={messageType[type]}
+                        on:updateMessageBody={updateMessageBody}
+                        {content}
+                        {message}
+                    />
 
                     {#if $reactionsWithUsers.length > 0}
                         <MessageReactions
