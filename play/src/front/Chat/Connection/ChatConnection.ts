@@ -189,6 +189,7 @@ export interface ChatMessage {
     remove: () => void;
     edit: (newContent: string) => Promise<void>;
     downloadAttachment?: () => Promise<void>;
+    refuseAttachment?: () => Promise<void>;
     isDeleted: Readable<boolean>;
     isModified: Readable<boolean>;
     addReaction: (reaction: string) => Promise<void>;
@@ -323,7 +324,7 @@ export type ChatMessageContent = {
     body: string;
     url: string | undefined;
     thumbnailUrl?: string;
-    mediaState?: "ready" | "pendingDownload" | "loading" | "error";
+    mediaState?: "ready" | "pendingDownload" | "loading" | "error" | "refused";
     mediaProgress?: number;
     mediaErrorKind?: "download" | "decrypt";
 };
