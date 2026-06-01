@@ -1,10 +1,15 @@
 <script lang="ts">
     import type { Readable } from "svelte/store";
     import type { ChatMessage, ChatMessageContent } from "../../../Connection/ChatConnection";
+    import { formatProximityFileTransferRemainingTime } from "../../../Connection/Proximity/ProximityFileTransferEta";
     import LL from "../../../../../i18n/i18n-svelte";
 
     export let content: Readable<ChatMessageContent>;
     export let message: ChatMessage | undefined = undefined;
+    $: estimatedRemainingTime =
+        $content.mediaEstimatedRemainingSeconds === undefined
+            ? undefined
+            : formatProximityFileTransferRemainingTime($content.mediaEstimatedRemainingSeconds);
 
     async function downloadAttachment() {
         await message?.downloadAttachment?.();
@@ -42,6 +47,9 @@
         {$LL.chat.file.loadingAttachment()}
         {#if $content.mediaProgress !== undefined}
             {Math.round($content.mediaProgress * 100)}%
+        {/if}
+        {#if estimatedRemainingTime !== undefined}
+            · {$LL.chat.file.remainingTime({ time: estimatedRemainingTime })}
         {/if}
     </div>
 {:else if $content.mediaState === "error"}
