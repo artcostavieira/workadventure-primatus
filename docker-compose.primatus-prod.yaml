@@ -9,7 +9,7 @@
 # Source dos mapas: COPY no Dockerfile.maps (sem bind mount — Coolify não respeita).
 #
 # Variáveis críticas (setar em Coolify):
-#   ALDEIA_SECRET_KEY, ALDEIA_ADMIN_API_TOKEN, MAP_STORAGE_API_TOKEN,
+#   SECRET_KEY, ADMIN_API_TOKEN, MAP_STORAGE_API_TOKEN,
 #   ROOM_API_SECRET_KEY (igual ao SECRET_KEY)
 
 services:
@@ -38,7 +38,7 @@ services:
       MAX_USERNAME_LENGTH: "${MAX_USERNAME_LENGTH:-8}"
       DISABLE_ANONYMOUS: "false"
       DISABLE_NOTIFICATIONS: "false"
-      SECRET_KEY: $ALDEIA_SECRET_KEY
+      SECRET_KEY: $SECRET_KEY
       API_URL: back:50051
       OPENID_CLIENT_ID: ""
       OPENID_CLIENT_SECRET: ""
@@ -58,13 +58,13 @@ services:
       ENABLE_TUTORIAL: "true"
       ENABLE_OPENAPI_ENDPOINT: "false"
       ADMIN_API_URL: ""
-      ADMIN_API_TOKEN: $ALDEIA_ADMIN_API_TOKEN
+      ADMIN_API_TOKEN: $ADMIN_API_TOKEN
       ROOM_API_PORT: "50051"
-      ROOM_API_SECRET_KEY: $ALDEIA_SECRET_KEY
+      ROOM_API_SECRET_KEY: $SECRET_KEY
       GRPC_VERBOSITY: ERROR
       FEATURE_FLAG_BROADCAST_AREAS: "true"
       MINIMUM_DISTANCE: "${MINIMUM_DISTANCE:-128}"
-      MAP_STORAGE_API_TOKEN: ${MAP_STORAGE_API_TOKEN:-$ALDEIA_SECRET_KEY}
+      MAP_STORAGE_API_TOKEN: ${MAP_STORAGE_API_TOKEN:-$SECRET_KEY}
       MAX_DISPLAYED_VIDEOS: "${MAX_DISPLAYED_VIDEOS:-4}"
       LIVEKIT_PIXEL_DENSITY: ""
       # Tools integration (desligadas por default)
@@ -98,9 +98,9 @@ services:
     image: thecodingmachine/workadventure-back:v1.31.3
     environment:
       PLAY_URL: https://aldeia.primatus.com.br
-      SECRET_KEY: $ALDEIA_SECRET_KEY
+      SECRET_KEY: $SECRET_KEY
       ADMIN_API_URL: ""
-      ADMIN_API_TOKEN: $ALDEIA_ADMIN_API_TOKEN
+      ADMIN_API_TOKEN: $ADMIN_API_TOKEN
       ENABLE_MAP_EDITOR: "true"
       JITSI_URL: ""
       JITSI_ISS: ""
@@ -133,14 +133,14 @@ services:
     image: thecodingmachine/workadventure-map-storage:v1.31.3
     environment:
       API_URL: back:50051
-      SECRET_KEY: $ALDEIA_SECRET_KEY
-      MAP_STORAGE_API_TOKEN: ${MAP_STORAGE_API_TOKEN:-$ALDEIA_SECRET_KEY}
+      SECRET_KEY: $SECRET_KEY
+      MAP_STORAGE_API_TOKEN: ${MAP_STORAGE_API_TOKEN:-$SECRET_KEY}
       AUTHENTICATION_STRATEGY: ""
       ENABLE_BEARER_AUTHENTICATION: "true"
       ENABLE_BASIC_AUTHENTICATION: "true"
       AUTHENTICATION_USER: admin
-      AUTHENTICATION_PASSWORD: $ALDEIA_ADMIN_API_TOKEN
-      AUTHENTICATION_TOKEN: $ALDEIA_ADMIN_API_TOKEN
+      AUTHENTICATION_PASSWORD: $ADMIN_API_TOKEN
+      AUTHENTICATION_TOKEN: $ADMIN_API_TOKEN
       PATH_PREFIX: /map-storage
       PUSHER_URL: https://aldeia.primatus.com.br/
       ENTITY_COLLECTION_URLS: ""
