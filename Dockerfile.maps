@@ -1,0 +1,9 @@
+FROM thecodingmachine/php:8.1-v4-apache-node12
+
+ENV STARTUP_COMMAND_0="sudo a2enmod headers"
+
+COPY --chown=docker:docker maps/ /var/www/html/
+
+USER docker
+WORKDIR /var/www/html
+RUN if [ -f package.json ]; then yarn install --frozen-lockfile || true; fi

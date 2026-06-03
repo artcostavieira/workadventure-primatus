@@ -1,0 +1,213 @@
+# Aldeia Primatus — Production deploy via Coolify (Hetzner)
+# Usa imagens prod oficiais thecodingmachine/workadventure-* :v1.31.3
+# Coolify provê Traefik + Let's Encrypt automaticamente via labels.
+#
+# Domínios:
+#   - aldeia.primatus.com.br      → play, back (/api), map-storage (/map-storage), uploader (/uploader), icon (/icon)
+#   - maps.aldeia.primatus.com.br → maps (PHP server com arquivos .tmj/.tsj embarcados)
+#
+# Source dos mapas: COPY no Dockerfile.maps (sem bind mount — Coolify não respeita).
+#
+# Variáveis críticas (setar em Coolify):
+#   ALDEIA_SECRET_KEY, ALDEIA_ADMIN_API_TOKEN, MAP_STORAGE_API_TOKEN,
+#   ROOM_API_SECRET_KEY (igual ao SECRET_KEY)
+
+services:
+  play:
+    image: thecodingmachine/workadventure-play:v1.31.3
+    environment:
+      DEBUG_MODE: "false"
+      JITSI_URL: ""
+      JITSI_PRIVATE_MODE: "false"
+      ENABLE_MAP_EDITOR: "true"
+      MAP_EDITOR_ALLOW_ALL_USERS: "false"
+      PUSHER_URL: https://aldeia.primatus.com.br/
+      FRONT_URL: /
+      ICON_URL: /icon
+      UPLOADER_URL: /uploader
+      INTERNAL_MAP_STORAGE_URL: http://map-storage:3000
+      PUBLIC_MAP_STORAGE_URL: https://aldeia.primatus.com.br/map-storage
+      ALLOWED_CORS_ORIGIN: https://aldeia.primatus.com.br
+      START_ROOM_URL: $START_ROOM_URL
+      TURN_SERVER: ${TURN_SERVER:-}
+      TURN_USER: ""
+      TURN_PASSWORD: ""
+      TURN_STATIC_AUTH_SECRET: ${TURN_STATIC_AUTH_SECRET:-}
+      STUN_SERVER: ${STUN_SERVER:-}
+      MAX_PER_GROUP: "${MAX_PER_GROUP:-4}"
+      MAX_USERNAME_LENGTH: "${MAX_USERNAME_LENGTH:-8}"
+      DISABLE_ANONYMOUS: "false"
+      DISABLE_NOTIFICATIONS: "false"
+      SECRET_KEY: $ALDEIA_SECRET_KEY
+      API_URL: back:50051
+      OPENID_CLIENT_ID: ""
+      OPENID_CLIENT_SECRET: ""
+      OPENID_CLIENT_ISSUER: ""
+      OPENID_PROFILE_SCREEN_PROVIDER: ""
+      OPENID_SCOPE: profile openid email
+      OPENID_PROMPT: ""
+      OPENID_USERNAME_CLAIM: ""
+      OPENID_LOCALE_CLAIM: ""
+      OPENID_LOGOUT_REDIRECT_URL: ""
+      FALLBACK_LOCALE: pt
+      ENABLE_CHAT: "true"
+      ENABLE_CHAT_UPLOAD: "false"
+      ENABLE_CHAT_ONLINE_LIST: "true"
+      ENABLE_CHAT_DISCONNECTED_LIST: "true"
+      REDIS_HOST: redis
+      ENABLE_TUTORIAL: "true"
+      ENABLE_OPENAPI_ENDPOINT: "false"
+      ADMIN_API_URL: ""
+      ADMIN_API_TOKEN: $ALDEIA_ADMIN_API_TOKEN
+      ROOM_API_PORT: "50051"
+      ROOM_API_SECRET_KEY: $ALDEIA_SECRET_KEY
+      GRPC_VERBOSITY: ERROR
+      FEATURE_FLAG_BROADCAST_AREAS: "true"
+      MINIMUM_DISTANCE: "${MINIMUM_DISTANCE:-128}"
+      MAP_STORAGE_API_TOKEN: ${MAP_STORAGE_API_TOKEN:-$ALDEIA_SECRET_KEY}
+      MAX_DISPLAYED_VIDEOS: "${MAX_DISPLAYED_VIDEOS:-4}"
+      LIVEKIT_PIXEL_DENSITY: ""
+      # Tools integration (desligadas por default)
+      KLAXOON_ENABLED: "false"
+      YOUTUBE_ENABLED: "false"
+      GOOGLE_DRIVE_ENABLED: "false"
+      GOOGLE_DOCS_ENABLED: "false"
+      GOOGLE_SHEETS_ENABLED: "false"
+      GOOGLE_SLIDES_ENABLED: "false"
+      ERASER_ENABLED: "false"
+      EXCALIDRAW_ENABLED: "false"
+      CARDS_ENABLED: "false"
+      TLDRAW_ENABLED: "false"
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.play.rule=Host(`aldeia.primatus.com.br`) && PathPrefix(`/`)
+      - traefik.http.routers.play.entryPoints=https
+      - traefik.http.routers.play.tls.certresolver=letsencrypt
+      - traefik.http.routers.play.service=play
+      - traefik.http.services.play.loadbalancer.server.port=3000
+      - traefik.http.routers.play-ws.rule=Host(`aldeia.primatus.com.br`) && PathPrefix(`/ws/`)
+      - traefik.http.routers.play-ws.entryPoints=https
+      - traefik.http.routers.play-ws.tls.certresolver=letsencrypt
+      - traefik.http.routers.play-ws.service=play-ws
+      - traefik.http.services.play-ws.loadbalancer.server.port=3001
+      - traefik.http.services.play-ws.loadbalancer.sticky.cookie=true
+      - traefik.http.services.play-ws.loadbalancer.sticky.cookie.name=wa_ws_affinity
+    restart: unless-stopped
+
+  back:
+    image: thecodingmachine/workadventure-back:v1.31.3
+    environment:
+      PLAY_URL: https://aldeia.primatus.com.br
+      SECRET_KEY: $ALDEIA_SECRET_KEY
+      ADMIN_API_URL: ""
+      ADMIN_API_TOKEN: $ALDEIA_ADMIN_API_TOKEN
+      ENABLE_MAP_EDITOR: "true"
+      JITSI_URL: ""
+      JITSI_ISS: ""
+      BBB_URL: ""
+      BBB_SECRET: ""
+      MAX_PER_GROUP: "${MAX_PER_GROUP:-4}"
+      REDIS_HOST: redis
+      STORE_VARIABLES_FOR_LOCAL_MAPS: "true"
+      MAP_STORAGE_URL: map-storage:50053
+      INTERNAL_MAP_STORAGE_URL: http://map-storage:3000
+      PUBLIC_MAP_STORAGE_URL: https://aldeia.primatus.com.br/map-storage
+      ENABLE_CHAT: "true"
+      ENABLE_CHAT_UPLOAD: "false"
+      MINIMUM_DISTANCE: "${MINIMUM_DISTANCE:-128}"
+      GROUP_RADIUS: "${GROUP_RADIUS:-96}"
+      TURN_SERVER: ${TURN_SERVER:-}
+      STUN_SERVER: ${STUN_SERVER:-}
+    labels:
+      - traefik.enable=true
+      - traefik.http.middlewares.strip-api-prefix.stripprefix.prefixes=/api
+      - traefik.http.routers.back.rule=Host(`aldeia.primatus.com.br`) && PathPrefix(`/api`)
+      - traefik.http.routers.back.entryPoints=https
+      - traefik.http.routers.back.tls.certresolver=letsencrypt
+      - traefik.http.routers.back.middlewares=strip-api-prefix
+      - traefik.http.routers.back.service=back
+      - traefik.http.services.back.loadbalancer.server.port=8080
+    restart: unless-stopped
+
+  map-storage:
+    image: thecodingmachine/workadventure-map-storage:v1.31.3
+    environment:
+      API_URL: back:50051
+      SECRET_KEY: $ALDEIA_SECRET_KEY
+      MAP_STORAGE_API_TOKEN: ${MAP_STORAGE_API_TOKEN:-$ALDEIA_SECRET_KEY}
+      AUTHENTICATION_STRATEGY: ""
+      ENABLE_BEARER_AUTHENTICATION: "true"
+      ENABLE_BASIC_AUTHENTICATION: "true"
+      AUTHENTICATION_USER: admin
+      AUTHENTICATION_PASSWORD: $ALDEIA_ADMIN_API_TOKEN
+      AUTHENTICATION_TOKEN: $ALDEIA_ADMIN_API_TOKEN
+      PATH_PREFIX: /map-storage
+      PUSHER_URL: https://aldeia.primatus.com.br/
+      ENTITY_COLLECTION_URLS: ""
+    volumes:
+      - map-storage-data:/maps
+    labels:
+      - traefik.enable=true
+      - traefik.http.middlewares.strip-map-storage-prefix.stripprefix.prefixes=/map-storage
+      - traefik.http.routers.map-storage.rule=Host(`aldeia.primatus.com.br`) && PathPrefix(`/map-storage`)
+      - traefik.http.routers.map-storage.entryPoints=https
+      - traefik.http.routers.map-storage.tls.certresolver=letsencrypt
+      - traefik.http.routers.map-storage.middlewares=strip-map-storage-prefix
+      - traefik.http.routers.map-storage.service=map-storage
+      - traefik.http.services.map-storage.loadbalancer.server.port=3000
+    restart: unless-stopped
+
+  uploader:
+    image: thecodingmachine/workadventure-uploader:v1.31.3
+    environment:
+      UPLOADER_URL: https://aldeia.primatus.com.br/uploader
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      ENABLE_CHAT_UPLOAD: "false"
+      UPLOAD_MAX_FILESIZE: "10485760"
+    labels:
+      - traefik.enable=true
+      - traefik.http.middlewares.strip-uploader-prefix.stripprefix.prefixes=/uploader
+      - traefik.http.routers.uploader.rule=Host(`aldeia.primatus.com.br`) && PathPrefix(`/uploader`)
+      - traefik.http.routers.uploader.entryPoints=https
+      - traefik.http.routers.uploader.tls.certresolver=letsencrypt
+      - traefik.http.routers.uploader.middlewares=strip-uploader-prefix
+      - traefik.http.routers.uploader.service=uploader
+      - traefik.http.services.uploader.loadbalancer.server.port=8080
+    restart: unless-stopped
+
+  maps:
+    build:
+      context: .
+      dockerfile: Dockerfile.maps
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.maps.rule=Host(`maps.aldeia.primatus.com.br`)
+      - traefik.http.routers.maps.entryPoints=https
+      - traefik.http.routers.maps.tls.certresolver=letsencrypt
+      - traefik.http.routers.maps.service=maps
+      - traefik.http.services.maps.loadbalancer.server.port=80
+    restart: unless-stopped
+
+  icon:
+    image: matthiasluedtke/iconserver:v3.21.0
+    labels:
+      - traefik.enable=true
+      - traefik.http.middlewares.strip-icon-prefix.stripprefix.prefixes=/icon
+      - traefik.http.routers.icon.rule=Host(`aldeia.primatus.com.br`) && (PathPrefix(`/icon`) || PathPrefix(`/lettericons`))
+      - traefik.http.routers.icon.entryPoints=https
+      - traefik.http.routers.icon.tls.certresolver=letsencrypt
+      - traefik.http.routers.icon.middlewares=strip-icon-prefix
+      - traefik.http.routers.icon.service=icon
+      - traefik.http.services.icon.loadbalancer.server.port=8080
+    restart: unless-stopped
+
+  redis:
+    image: redis:6
+    volumes:
+      - redisdata:/data
+    restart: unless-stopped
+
+volumes:
+  redisdata:
+  map-storage-data:
